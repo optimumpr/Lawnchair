@@ -65,13 +65,11 @@ android {
 
         buildConfigField "boolean", "FEATURE_QUINOA", "true"
         buildConfigField "boolean", "FEATURE_SETTINGS_SEARCH", "true"
-        buildConfigField "boolean", "DEBUG_STRICT_MODE", isPublicBuild ? "false" : "true"
+        buildConfigField "boolean", "DEBUG_STRICT_MODE", "false"
         buildConfigField "boolean", "HAS_LEAKCANARY", "false"
 
         def githubToken = localProps.getProperty('githubToken') ?: '"' + System.getenv("GITHUB_TOKEN") + '"'
         buildConfigField "String", "GITHUB_TOKEN", githubToken
-
-        buildConfigField "boolean", "SIGNATURE_VERIFICATION", "false"
 
         def debugMenuCode = System.getenv("DEBUG_MENU_CODE") ?: "veryperu"
         buildConfigField "String", "DEBUG_MENU_CODE_HASH", '"' + debugMenuCode.digest('SHA-1') + '"'
@@ -96,7 +94,7 @@ android {
                 matchingFallbacks = ['debug']
             }
 
-            buildConfigField "boolean", "HAS_LEAKCANARY", isPublicBuild ? "false" : "true"
+            buildConfigField "boolean", "HAS_LEAKCANARY", "false"
         }
 
         optimized {
@@ -178,15 +176,11 @@ android {
             dimension "build"
             applicationIdSuffix ".ci"
             versionNameSuffix "-ci-" + System.getenv("DRONE_BRANCH")
-
-            buildConfigField "boolean", "SIGNATURE_VERIFICATION", "true"
         }
 
         plah {
             dimension "build"
             applicationIdSuffix ".plah"
-
-            buildConfigField "boolean", "SIGNATURE_VERIFICATION", "true"
         }
     }
 
@@ -309,15 +303,7 @@ dependencies {
     quickstepImplementation project(':systemui-shared')
     lawnchairImplementation files('lawnchair/libs/sesame-lib.aar')
 
-    if (!isPublicBuild) {
-        // TODO: update to 2.x when we're on AndroidX
-        debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.3'
-        debugImplementation 'com.squareup.leakcanary:leakcanary-support-fragment:1.6.3'
-        optimizedImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.3'
-        optimizedImplementation 'com.squareup.leakcanary:leakcanary-support-fragment:1.6.3'
-    } else {
-        implementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.3'
-    }
+    implementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.3'
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation "org.mockito:mockito-core:1.9.5"

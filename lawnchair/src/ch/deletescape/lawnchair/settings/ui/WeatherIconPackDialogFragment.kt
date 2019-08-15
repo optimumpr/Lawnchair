@@ -46,7 +46,7 @@ class WeatherIconPackDialogFragment: PreferenceDialogFragmentCompat() {
 
     override fun onPrepareDialogBuilder(builder: AlertDialog.Builder) {
         super.onPrepareDialogBuilder(builder)
-        builder.setNeutralButton(R.string.get_more_icon_packs) { dialog, _ ->
+        builder.setNeutralButton(R.string.get_more_icon_packs) { dialog, which ->
             activity?.startActivity(PackageManagerHelper.getMarketSearchIntent(activity, "Chronus Weather Icons"))
             dialog.dismiss()
         }.setPositiveButton(null, null)
@@ -54,7 +54,7 @@ class WeatherIconPackDialogFragment: PreferenceDialogFragmentCompat() {
 
     override fun onBindDialogView(view: View) {
         super.onBindDialogView(view)
-        list = view.findViewById(R.id.pack_list)
+        list = view.findViewById<ListView>(R.id.pack_list)
         list.adapter = WeatherIconPackAdapter(context!!, manager.getIconPacks(), manager.getPack().pkgName) {
             context?.lawnchairPrefs?.weatherIconPack = it
             dismiss()
@@ -83,7 +83,7 @@ class WeatherIconPackDialogFragment: PreferenceDialogFragmentCompat() {
                 }
                 findViewById<RadioButton>(R.id.select).apply {
                     isChecked = pack.pkgName == selected
-                    setOnCheckedChangeListener { _, _ ->
+                    setOnCheckedChangeListener { buttonView, isChecked ->
                         onSelect(pack.pkgName)
                     }
                     applyColor(color)

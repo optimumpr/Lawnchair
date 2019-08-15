@@ -34,7 +34,7 @@ import android.util.SparseIntArray;
 import ch.deletescape.lawnchair.LawnchairPreferences;
 import ch.deletescape.lawnchair.iconpack.AdaptiveIconCompat;
 import ch.deletescape.lawnchair.iconpack.LawnchairIconProvider;
-
+import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.graphics.ColorExtractor;
 import com.android.launcher3.graphics.FixedScaleDrawable;
@@ -49,15 +49,11 @@ public class AdaptiveIconGenerator {
 
     // Found after some experimenting, might be improved with some more testing
     private static final float FULL_BLEED_ICON_SCALE = 1.44f;
-    // Found after some experimenting, might be improved with some more testing
-    private static final float NO_MIXIN_ICON_SCALE = 1.40f;
-    // Icons with less than 5 colors are considered as "single color"
-    private static final int SINGLE_COLOR_LIMIT = 5;
-    // Minimal alpha to be considered opaque
-    private static final int MIN_VISIBLE_ALPHA = 0xEF;
 
     private Context context;
     private Drawable icon;
+    private final String identifier;
+    private final LawnchairPreferences prefs;
 
     private final boolean extractColor;
     private final boolean treatWhite;
@@ -66,7 +62,6 @@ public class AdaptiveIconGenerator {
     private boolean shouldWrap;
     private int backgroundColor = Color.WHITE;
     private boolean isFullBleed;
-    private boolean noMixinNeeded;
     private boolean fullBleedChecked;
     private boolean matchesMaskShape;
     private boolean isBackgroundWhite;
@@ -79,10 +74,12 @@ public class AdaptiveIconGenerator {
 
     private AdaptiveIconCompat tmp;
 
-    public AdaptiveIconGenerator(Context context, @NonNull Drawable icon) {
+    public AdaptiveIconGenerator(Context context, @NonNull Drawable icon, String identifier) {
         this.context = context;
         this.icon = AdaptiveIconCompat.wrap(icon);
-        LawnchairPreferences prefs = Utilities.getLawnchairPrefs(context);
+        // useful for caching or dirty hacks
+        this.identifier = identifier;
+        prefs = Utilities.getLawnchairPrefs(context);
         shouldWrap = prefs.getEnableLegacyTreatment();
         extractColor = shouldWrap && prefs.getColorizedLegacyTreatment();
         treatWhite = extractColor && prefs.getEnableWhiteOnlyTreatment();
@@ -120,7 +117,7 @@ public class AdaptiveIconGenerator {
             RectF bounds = new RectF();
 
             initTmpIfNeeded();
-            scale = normalizer.getScale(extractee, bounds, tmp.getIconMask(), outShape, MIN_VISIBLE_ALPHA);
+            scale = normalizer.getScale(extractee, bounds, tmp.getIconMask(), outShape, 0xEB);
             matchesMaskShape = outShape[0];
 
             if (extractee instanceof ColorDrawable) {
@@ -135,9 +132,7 @@ public class AdaptiveIconGenerator {
 
             // Check if the icon is squareish
             final float ratio = aHeight / aWidth;
-            boolean isSquareish = 0.999 < ratio && ratio < 1.0001;
-            boolean almostSquarish = isSquareish || (0.97 < ratio && ratio < 1.005);
-            if (!isSquareish) {
+            if (ratio < 0.99 || ratio > 1.001) {
                 isFullBleed = false;
                 fullBleedChecked = true;
             }
@@ -177,17 +172,15 @@ public class AdaptiveIconGenerator {
             float bottom = bounds.bottom * height * width;
             int addPixels = Math.round(l + top + r + bottom);
 
-            // Any icon with less than 10% transparent pixels (padding excluded) is considered "full-bleed-ish"
-            final int maxTransparent = (int) (round(size * .10) + addPixels);
-            // Any icon with less than 27% transparent pixels (padding excluded) doesn't need a color mix-in
-            final int noMixinScore = (int) (round(size * .27) + addPixels);
+            // Any icon with less than 13% transparent pixels (padding excluded) is considered "full-bleed-ish"
+            final int maxTransparent = (int) (round(size * .13) + addPixels);
 
             int highScore = 0;
             int bestRGB = 0;
             int transparentScore = 0;
             for (int pixel : pixels) {
                 int alpha = 0xFF & (pixel >> 24);
-                if (alpha < MIN_VISIBLE_ALPHA) {
+                if (alpha < 0xDD) {
                     // Drop mostly-transparent pixels.
                     transparentScore++;
                     if (transparentScore > maxTransparent) {
@@ -216,12 +209,10 @@ public class AdaptiveIconGenerator {
             // add back the alpha channel
             bestRGB |= 0xff << 24;
 
-            // not yet checked = not set to false = has to be full bleed, isBackgroundWhite = true = is adaptive
-            isFullBleed |= !fullBleedChecked && !isBackgroundWhite;
-
             // return early if a mix-in isnt needed
-            noMixinNeeded = !isFullBleed && !isBackgroundWhite && almostSquarish && transparentScore <= noMixinScore;
-            if (isFullBleed || noMixinNeeded) {
+            if (isFullBleed || !fullBleedChecked) {
+                // not yet checked = not set to false = has to be full bleed
+                isFullBleed = true;
                 backgroundColor = bestRGB;
                 onExitLoop();
                 return;
@@ -233,25 +224,26 @@ public class AdaptiveIconGenerator {
                 return;
             }
 
-            // "single color"
-            final int numColors = rgbScoreHistogram.size();
-            boolean singleColor = numColors <= SINGLE_COLOR_LIMIT;
-
-            // Convert to HSL to get the lightness and adjust the color
+            // Convert to HSL to get the lightness
             final float[] hsl = new float[3];
             ColorUtils.colorToHSL(bestRGB, hsl);
             float lightness = hsl[2];
 
+            // "single color"
+            boolean singleColor = rgbScoreHistogram.size() <= 2;
             boolean light = lightness > .5;
             // Apply dark background to mostly white icons
             boolean veryLight = lightness > .75 && singleColor;
             // Apply light background to mostly dark icons
-            boolean veryDark = lightness < .35 && singleColor;
+            boolean veryDark = lightness < .30 && singleColor;
 
             // Adjust color to reach suitable contrast depending on the relationship between the colors
-            final int opaqueSize = size - transparentScore;
-            final float pxPerColor = opaqueSize / (float) numColors;
-            float mixRatio = min(max(pxPerColor / highScore, .15f), .7f);
+            float mixRatio = min(max(1f - (highScore / (float) (size - transparentScore)), .2f), .8f);
+
+            if (singleColor) {
+                // Invert ratio for "single color" foreground
+                mixRatio = 1f - mixRatio;
+            }
 
             // Vary color mix-in based on lightness and amount of colors
             int fill = (light && !veryLight) || veryDark ? 0xFFFFFFFF : 0xFF333333;
@@ -282,16 +274,9 @@ public class AdaptiveIconGenerator {
         }
         initTmpIfNeeded();
         ((FixedScaleDrawable) tmp.getForeground()).setDrawable(icon);
-        if (matchesMaskShape || isFullBleed || noMixinNeeded) {
-            float scale;
-            if (noMixinNeeded) {
-                float upScale = min(width / aWidth, height / aHeight);
-                scale = NO_MIXIN_ICON_SCALE * upScale;
-            } else {
-                float upScale = max(width / aWidth, height / aHeight);
-                scale = FULL_BLEED_ICON_SCALE * upScale;
-            }
-            ((FixedScaleDrawable) tmp.getForeground()).setScale(scale);
+        if (matchesMaskShape || isFullBleed) {
+            float upScale = max(width / aWidth, height / aHeight);
+            ((FixedScaleDrawable) tmp.getForeground()).setScale(FULL_BLEED_ICON_SCALE * upScale);
         } else {
             ((FixedScaleDrawable) tmp.getForeground()).setScale(scale);
         }

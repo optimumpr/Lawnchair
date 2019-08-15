@@ -112,6 +112,5 @@
         <attr name="controllerClass" />
         <attr name="content" />
         <attr name="hasPreview" />
-        <attr name="indexable" />
     </declare-styleable>
 </resources>

@@ -300,4 +300,5 @@
     <dimen name="qsb_margin_top_adjusting">20dp</dimen>
     <dimen name="all_apps_search_vertical_offset">30dp</dimen>
     <dimen name="margin_normal">16dp</dimen>
+    <dimen name="task_corner_radius">2dp</dimen>
 </resources>

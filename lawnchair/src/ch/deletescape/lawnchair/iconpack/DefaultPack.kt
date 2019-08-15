@@ -86,7 +86,7 @@ class DefaultPack(context: Context) : IconPack(context, "") {
         getRoundIcon(component, iconDpi)?.let {
             roundIcon = it.apply { mutate() }
         }
-        val gen = AdaptiveIconGenerator(context, roundIcon ?: originalIcon)
+        val gen = AdaptiveIconGenerator(context, roundIcon ?: originalIcon, name)
         return gen.result
     }
 
@@ -113,7 +113,7 @@ class DefaultPack(context: Context) : IconPack(context, "") {
             getRoundIcon(component, iconDpi)?.let {
                 roundIcon = it.apply { mutate() }
             }
-            val gen = AdaptiveIconGenerator(context, roundIcon ?: originalIcon)
+            val gen = AdaptiveIconGenerator(context, roundIcon ?: originalIcon, key.toString())
             return gen.result
         }
         return iconProvider.getDynamicIcon(info, iconDpi, flattenDrawable)
@@ -123,7 +123,7 @@ class DefaultPack(context: Context) : IconPack(context, "") {
         ensureInitialLoadComplete()
 
         val drawable = DeepShortcutManager.getInstance(context).getShortcutIconDrawable(shortcutInfo, iconDpi)
-        val gen = AdaptiveIconGenerator(context, drawable)
+        val gen = AdaptiveIconGenerator(context, drawable, shortcutInfo.id)
         return gen.result
     }
 

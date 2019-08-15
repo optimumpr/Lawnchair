@@ -23,7 +23,6 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.ActivityInfo
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Rect
@@ -100,58 +99,6 @@ open class LawnchairLauncher : NexusLauncherActivity(),
         }
 
         ColorEngine.getInstance(this).addColorChangeListeners(this, *colorsToWatch)
-
-        performSignatureVerification()
-    }
-
-    override fun startActivitySafely(v: View?, intent: Intent, item: ItemInfo?): Boolean {
-        val success = super.startActivitySafely(v, intent, item)
-        if (success) {
-            (launcherAppTransitionManager as LawnchairAppTransitionManagerImpl)
-                    .playLaunchAnimation(this, v, intent)
-        }
-        return success
-    }
-
-    override fun onStart() {
-        super.onStart()
-        (launcherAppTransitionManager as LawnchairAppTransitionManagerImpl)
-                .overrideResumeAnimation(this)
-    }
-
-    private fun performSignatureVerification() {
-        if (!verifySignature()) {
-            val message = "The \"${BuildConfig.FLAVOR_build}\" build flavor is reserved for " +
-                    "official Lawnchair distributions only. Please do not use it.\n" +
-                    "\n" +
-                    "If you're a ROM developer and including Lawnchair in your ROM, please use " +
-                    "the official apks provided as a prebuilt or change the package name so that " +
-                    "users can still update to official versions if they wish to."
-            AlertDialog.Builder(this)
-                    .setTitle(R.string.derived_app_name)
-                    .setMessage(message)
-                    .setPositiveButton(android.R.string.ok) { _, _ -> }
-                    .setCancelable(false)
-                    .show().applyAccent()
-        }
-    }
-
-    private fun verifySignature(): Boolean {
-        if (!BuildConfig.SIGNATURE_VERIFICATION) return true
-
-        val signatureHash = resources.getInteger(R.integer.lawnchair_signature_hash)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val info = packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-            val signingInfo = info.signingInfo
-            if (signingInfo.hasMultipleSigners()) return false
-            return signingInfo.signingCertificateHistory.any { it.hashCode() == signatureHash }
-        } else {
-            val info = packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
-            info.signatures.forEach {
-                if (it.hashCode() != signatureHash) return false
-            }
-            return info.signatures.isNotEmpty()
-        }
     }
 
     override fun finishBindingItems() {
@@ -397,7 +344,6 @@ open class LawnchairLauncher : NexusLauncherActivity(),
 
         const val REQUEST_PERMISSION_STORAGE_ACCESS = 666
         const val REQUEST_PERMISSION_LOCATION_ACCESS = 667
-        const val REQUEST_PERMISSION_MODIFY_NAVBAR = 668
         const val CODE_EDIT_ICON = 100
 
         var sRestart = false

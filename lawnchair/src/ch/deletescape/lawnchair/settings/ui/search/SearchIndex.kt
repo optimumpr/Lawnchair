@@ -66,7 +66,6 @@ class SearchIndex(private val context: Context) {
             }
             val attrs = Xml.asAttributeSet(parser)
             val ta = context.obtainStyledAttributes(attrs, R.styleable.IndexablePreference)
-            val indexable = ta.getBoolean(R.styleable.IndexablePreference_indexable, true)
             when {
                 cls != null && SubPreference::class.java.isAssignableFrom(cls) -> {
                     val controller = createController(ta)
@@ -75,7 +74,7 @@ class SearchIndex(private val context: Context) {
                         val title = controller?.title ?: ta.getString(R.styleable.IndexablePreference_android_title)
                         val content = ta.getResourceId(R.styleable.IndexablePreference_content, 0)
                         val hasPreview = ta.getBoolean(R.styleable.IndexablePreference_hasPreview, false)
-                        var canIndex = indexable
+                        var canIndex = true
                         if (SwitchSubPreference::class.java.isAssignableFrom(cls)) {
                             val key = ta.getString(R.styleable.IndexablePreference_android_key)
                             val defaultValue = ta.getBoolean(R.styleable.IndexablePreference_android_defaultValue, false)
@@ -95,7 +94,7 @@ class SearchIndex(private val context: Context) {
                 }
                 cls != null && PreferenceGroup::class.java.isAssignableFrom(cls) -> {
                     val controller = createController(ta)
-                    if (controller?.isVisible != false && indexable) {
+                    if (controller?.isVisible != false) {
                         val title = controller?.title ?: ta.getString(R.styleable.IndexablePreference_android_title)
                         if (parent != null) {
                             indexSection(parser, SettingsCategory(parent.title, title,
@@ -109,7 +108,7 @@ class SearchIndex(private val context: Context) {
                 }
                 else -> {
                     val controller = createController(ta)
-                    if (controller?.isVisible != false && indexable) {
+                    if (controller?.isVisible != false) {
                         val iconRes = ta.getResourceId(R.styleable.IndexablePreference_android_icon, 0)
                         val key = ta.getString(R.styleable.IndexablePreference_android_key)
                         val title = controller?.title ?: ta.getString(R.styleable.IndexablePreference_android_title)

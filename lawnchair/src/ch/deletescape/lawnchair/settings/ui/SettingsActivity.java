@@ -68,7 +68,6 @@ import ch.deletescape.lawnchair.LawnchairLauncher;
 import ch.deletescape.lawnchair.LawnchairPreferences;
 import ch.deletescape.lawnchair.LawnchairPreferencesChangeCallback;
 import ch.deletescape.lawnchair.LawnchairUtilsKt;
-import ch.deletescape.lawnchair.adaptive.IconShapePreference;
 import ch.deletescape.lawnchair.colors.ColorEngine;
 import ch.deletescape.lawnchair.colors.overrides.ThemedEditTextPreferenceDialogFragmentCompat;
 import ch.deletescape.lawnchair.colors.overrides.ThemedListPreferenceDialogFragment;
@@ -716,8 +715,6 @@ public class SettingsActivity extends SettingsBaseActivity implements
             } else if (preference instanceof PreferenceDialogPreference) {
                 f = PreferenceScreenDialogFragment.Companion
                         .newInstance((PreferenceDialogPreference) preference);
-            } else if (preference instanceof IconShapePreference) {
-                f = ((IconShapePreference) preference).createDialogFragment();
             } else if (preference instanceof ListPreference) {
                 Log.d("success", "onDisplayPreferenceDialog: yay");
                 f = ThemedListPreferenceDialogFragment.Companion.newInstance(preference.getKey());

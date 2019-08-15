@@ -122,7 +122,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver, 
     private final float mSlop;
 
     private final boolean mLayoutHorizontal;
-    private int mIconSize;
+    private final int mIconSize;
 
     @ViewDebug.ExportedProperty(category = "launcher")
     private boolean mIsIconVisible = true;
@@ -235,17 +235,12 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver, 
         setTextAlpha(1f);
     }
 
-    public void setLineCount(int lines) {
+    private void setLineCount(int lines) {
         setMaxLines(lines);
         setSingleLine(lines == 1);
         setEllipsize(TextUtils.TruncateAt.END);
         // This shouldn't even be needed, what is going on?!
         setLines(lines);
-    }
-
-    public void setColorResolver(String resolver) {
-        colorEngine.removeColorChangeListeners(this);
-        colorEngine.addColorChangeListeners(this, resolver);
     }
 
     protected int getCustomFontType(int display) {
@@ -558,12 +553,10 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver, 
     }
 
     public boolean shouldTextBeVisible() {
+        // Text should be visible everywhere but the hotseat.
         Object tag = getParent() instanceof FolderIcon ? ((View) getParent()).getTag() : getTag();
         ItemInfo info = tag instanceof ItemInfo ? (ItemInfo) tag : null;
-        if (info != null && info.container == LauncherSettings.Favorites.CONTAINER_HOTSEAT) {
-            return !Utilities.getLawnchairPrefs(getContext()).getHideDockLabels();
-        }
-        return true;
+        return info == null || info.container != LauncherSettings.Favorites.CONTAINER_HOTSEAT;
     }
 
     public void setTextVisibility(boolean visible) {
@@ -766,11 +759,6 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver, 
 
     public int getIconSize() {
         return mIconSize;
-    }
-
-    public void setIconSize(int iconSize) {
-        mIconSize = iconSize;
-        setIcon(mIcon);
     }
 
     protected boolean isTextHidden() {
